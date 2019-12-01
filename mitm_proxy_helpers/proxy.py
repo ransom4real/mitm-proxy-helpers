@@ -161,9 +161,9 @@ class Proxy:
         script_path = None
         status_code = ''
         if not script:
-            print('Starting mitmdump proxy server (no script)')
-            script_path = ''
-        elif script == 'har_logging':
+            script = 'har_logging'
+
+        if script == 'har_logging':
             print('Starting mitmdump proxy server with har logging')
             script_path = self.har_dump_path
         elif script == 'blacklist':
