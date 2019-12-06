@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=[
-        "paramiko",
+        "paramiko"
     ],
     keywords=['MITM', 'proxy', 'helpers'],
     classifiers=[

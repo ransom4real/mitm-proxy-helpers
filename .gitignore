@@ -108,3 +108,6 @@ venv.bak/
 
 # Pipfile lock file
 *.lock
+
+# Har file
+*.har

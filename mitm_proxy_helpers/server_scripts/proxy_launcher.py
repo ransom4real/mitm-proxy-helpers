@@ -21,16 +21,18 @@ class MitmProxy(object):
     # pylint: disable=useless-else-on-loop
     @staticmethod
     def build_ignore_hosts(hostname):
-        """ Build a mitmproxyignore_hosts command string. 
-        Take a hostname and convert it to a list of IP addresses. Use this to 
+        """ Build a mitmproxyignore_hosts command string.
+        Take a hostname and convert it to a list of IP addresses. Use this to
         build the mitmproxy ignore command line argument string """
 
+        ignore_str = r""
+        if not hostname:
+            return ignore_str
         # Resolve hostname to a list of IP addresses
         print('proxy_launcher: Resolving hostname: {}'.format(hostname))
         ip_addresses = socket.gethostbyname_ex(hostname)[-1]
 
         # Construct the ignore hosts string
-        ignore_str = r""
         if ip_addresses:
             ignore_str += r"--ignore-hosts '"
             if len(ip_addresses) == 1:
@@ -51,9 +53,13 @@ class MitmProxy(object):
         """ Build the mitmproxy (mitmdump) command line string """
         ignore_str = MitmProxy.build_ignore_hosts(
             self.config.get('ignore_hostname', ''))
+        mode_str = ''
+        mode = self.config.get('mode', None)
+        if mode:
+            mode_str = "--mode {0} ".format(mode)
         cmd = ("ulimit -s {ulimit} & "
                "{python3_path} /usr/local/bin/mitmdump "
-               "--mode transparent "
+               "{mode_str}"
                "--listen-port={proxy_port} --showhost "
                "--set hardump='{har_path}' "
                "--set status_code='{status_code}' "
@@ -67,6 +73,7 @@ class MitmProxy(object):
                "{ignore_str}").format(
                    ulimit=self.config.get('ulimit', ''),
                    python3_path=self.config.get('python3_path', ''),
+                   mode_str=mode_str,
                    proxy_port=self.config.get('proxy_port', ''),
                    har_path=self.config.get('har_path', ''),
                    status_code=self.config.get('status_code', ''),

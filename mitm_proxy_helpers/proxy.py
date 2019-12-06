@@ -1,13 +1,12 @@
 ''' MITM Proxy client module '''
 from __future__ import print_function
+from distutils import dir_util
+import json
 import os
 import time
 import select
-import shutil
 
 import paramiko
-
-from mitm_proxy_helpers import mitmutil
 
 
 class InvalidPathException(Exception):
@@ -29,16 +28,18 @@ class Proxy:
 
     def __init__(self):
         self.har_log = None
-        self.host = os.getenv('mitm_server_host', mitmutil.proxy_host())
+        self.host = os.getenv('mitm_server_host', os.getenv('proxy_host'))
         self.ssh_port = os.getenv('mitm_server_ssh_port', None)
         self.ssh_user = os.getenv('mitm_server_ssh_user', None)
         self.remote = None not in [self.ssh_port, self.ssh_user]
         self.ssh_password = os.getenv('mitm_server_ssh_password', None)
         self.interface = os.getenv('mitm_server_interface', 'eth0')
         self.proxy_port = int(os.getenv('mitm_proxy_listen_port', '8081'))
-        self.har_path = os.getenv('mitm_har_path', 'logs/har/dump.har')
-        self.python3_path = os.getenv('mitm_python3_path', shutil.which('python3'))
-        self.path_to_scripts = 'server_scripts'
+        self.har_path = os.getenv('mitm_har_path', '{0}/logs/har/dump.har').format(
+            os.path.dirname(os.path.abspath(__file__)))
+        self.python3_path = os.getenv('mitm_python3_path', '/usr/local/bin/python3')
+        self.path_to_scripts = "{0}/server_scripts".format(
+            os.path.dirname(os.path.abspath(__file__)))
         if self.remote is True:
             self.path_to_scripts = "/home/{0}/mitm".format(self.ssh_user)
         self.fixtures_dir = os.getenv(
@@ -91,6 +92,9 @@ class Proxy:
         if not self.har_path.endswith('.har'):
             raise InvalidPathException(
                 'har_path is not a valid path to a HAR file')
+        if not self.remote:
+            har_dir = os.path.dirname(self.har_path)
+            dir_util.mkpath(har_dir)
 
     def har(self):
         '''
@@ -103,6 +107,10 @@ class Proxy:
         self.delete_har()
         self.start_proxy()
         return self.har_log
+
+    def port(self):
+        ''' Returns the current proxy port '''
+        return self.proxy_port
 
     def ssh_command(self, command, max_attempts=1):
         """ Execute arbitrary SSH commmand on a remote host, use with caution """
@@ -237,6 +245,7 @@ class Proxy:
     def stop_proxy(self):
         """ Stop the proxy server """
         print('Stopping MITM proxy server')
+        command = ''
         if self.remote is True:
             command = "echo '{0}' | sudo killall {1}".format(
                 self.ssh_password, os.path.basename(self.python3_path))
@@ -327,6 +336,7 @@ class Proxy:
         """ Tries to get the HAR file """
         har = ''
         retries = 30
+        time.sleep(5)
         if self.remote is True:
             har = self._fetch_remote_har()
         else:
@@ -336,10 +346,13 @@ class Proxy:
                     break
                 time.sleep(1)
             har = open(self.har_path, 'r').read()
-        return har
+        return json.loads(har)
 
     def delete_har(self):
-        """ SSH Delete a HAR file from a remote server """
-        print('Deleting remote HAR file')
-        command = 'rm -f {0}'.format(self.har_path)
+        """ SSH Delete a HAR file """
+        msg = 'Deleting HAR file'
+        if self.remote is True:
+            msg = 'Deleting remote HAR file'
+        print(msg)
+        command = "rm -rf {0}".format(self.har_path)
         self.run_command(command, 10)
