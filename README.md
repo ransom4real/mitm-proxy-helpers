@@ -36,7 +36,7 @@ Helpers to enable MITM proxy functionality for direct and transparent proxying o
 
    You can stop the proxy using (Stopping the proxy when in hardump mode writes the har log out)
    ```python
-   proxy_client.stop_proxy
+   proxy_client.stop_proxy()
    ```
 
    To fetch the har log ensure you are running the `har_logging` script and call the `har()` method
