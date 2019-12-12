@@ -37,6 +37,9 @@ class Proxy(ProxyLogger):
         self.ssh_password = os.getenv('mitm_server_ssh_password', None)
         self.interface = os.getenv('mitm_server_interface', 'eth0')
         self.proxy_port = int(os.getenv('mitm_proxy_listen_port', '8081'))
+        url = "http://" + self.host
+        url_parts = url.split(":")
+        self.proxy = url_parts[1][2:] + ":" + str(self.proxy_port)
         self.har_path = os.getenv('mitm_har_path', '{0}/logs/har/dump.har').format(
             os.path.dirname(os.path.abspath(__file__)))
         self.python3_path = os.getenv('mitm_python3_path', '/usr/local/bin/python3')
@@ -366,12 +369,6 @@ class Proxy(ProxyLogger):
         self.log_output(msg)
         command = "rm -rf {0}".format(self.har_path)
         self.run_command(command, 10)
-
-    def proxy(self):
-        ''' Returns a browsermob styled proxy string '''
-        url = "http://" + self.host
-        url_parts = url.split(":")
-        return url_parts[1][2:] + ":" + str(self.proxy_port)
 
     def selenium_proxy(self):
         """
