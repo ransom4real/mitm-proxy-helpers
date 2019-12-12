@@ -104,7 +104,7 @@ if __name__ == '__main__':
             sys.argv[1:],
             '',
             ['ulimit=', 'python3_path=', 'har_dump_path=', 'har_path=',
-             'proxy_port=', 'script_path=',
+             'proxy_port=', 'script_path=', 'mode=',
              'ignore_hostname=',
              'status_code=', 'field_name=', 'field_value=',
              'partial_url=', 'partial_url_2=',
