@@ -56,8 +56,8 @@ During execution some environment variables will need to be set defaults are mea
 ## MITM Related Variables
 * mitm_server_host: Default to `proxy_host` variable if set. This is required if the MITM proxy is remote and is the IP of the host machine
 * mitm_server_ssh_port: If set, the framework will assume the MITM proxy is remote rather than local. Set to `22` unless SSH runs on a different port on the host machine
-* mitm_server_ssh_username: This is required if MITM is on a remote machine. The username should have the appropriate permissions to run MITM proxy and associated scripts
-* mitm_server_ssh_password: This is the associated password for the `mitm_server_ssh_username`
+* mitm_server_ssh_user: This is required if MITM is on a remote machine. The username should have the appropriate permissions to run MITM proxy and associated scripts
+* mitm_server_ssh_password: This is the associated password for the `mitm_server_ssh_user`
 * mitm_server_interface: The network interface MITM is running on. On MacOS this should be `en0` for wireless connections, `eth0` for wired connections. You can find what it is by doing `ifconfig` on the MITM host
 * mitm_proxy_listen_port: This defaults to `8081` and this indicates what port MITM Proxy will be listening on
 * mitm_har_path: This default to `logs/har/dump.har` path of the project root. However you can set a path reflecting where you want this har outputted on the remote MITM host.
