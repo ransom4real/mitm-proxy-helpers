@@ -310,6 +310,12 @@ class Proxy(ProxyLogger):
         )
         self.run_command(command.format(self.ssh_password))
 
+    @staticmethod
+    def initialise_har(_page_ref):
+        """
+        Initialises the proxy har.
+        """
+
     def _fetch_remote_har(self):
         """ SFTP Get a HAR file from a remote server """
         # pylint: disable=no-member
