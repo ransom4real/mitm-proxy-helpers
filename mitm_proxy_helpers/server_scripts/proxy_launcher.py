@@ -3,13 +3,14 @@ import socket
 import sys
 import os
 import getopt
+from mitm_proxy_helpers.proxy_logger import ProxyLogger
 
 
 class InvalidPathException(Exception):
     pass
 
 
-class MitmProxy(object):
+class MitmProxy(ProxyLogger):
     """ Build a mitmproxy server command line string """
 
     def __init__(self, config):
@@ -17,10 +18,10 @@ class MitmProxy(object):
         if not self.config.get('har_path').endswith('.har'):
             raise InvalidPathException(
                 "Config value 'har_path' is not a valid path to a HAR file")
+        super(MitmProxy, self).__init__()
 
     # pylint: disable=useless-else-on-loop
-    @staticmethod
-    def build_ignore_hosts(hostname):
+    def build_ignore_hosts(self, hostname=None):
         """ Build a mitmproxyignore_hosts command string.
         Take a hostname and convert it to a list of IP addresses. Use this to
         build the mitmproxy ignore command line argument string """
@@ -29,7 +30,7 @@ class MitmProxy(object):
         if not hostname:
             return ignore_str
         # Resolve hostname to a list of IP addresses
-        print('proxy_launcher: Resolving hostname: {}'.format(hostname))
+        self.log_output('proxy_launcher: Resolving hostname: {}'.format(hostname))
         ip_addresses = socket.gethostbyname_ex(hostname)[-1]
 
         # Construct the ignore hosts string
@@ -46,7 +47,7 @@ class MitmProxy(object):
                     # Last IP address entry
                     ignore_str += ip_addresses[-1].replace(r'.', r'\.') + r":80"
             ignore_str += r"'"
-        print('ignore-hosts value: {}'.format(ignore_str))
+        self.log_output('ignore-hosts value: {}'.format(ignore_str))
         return ignore_str
 
     def build_command(self):
@@ -93,7 +94,7 @@ class MitmProxy(object):
     def run_command(self):
         """ Run the mitmproxy command """
         cmd = self.build_command()
-        print('proxy_launcher: Running command: {}'.format(cmd))
+        self.log_output('proxy_launcher: Running command: {}'.format(cmd))
         os.system(cmd)
 
 

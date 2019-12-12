@@ -1,12 +1,14 @@
 ''' MITM Proxy client module '''
 from __future__ import print_function
-from distutils import dir_util
 import json
 import os
 import time
 import select
-
+from distutils import dir_util
 import paramiko
+from selenium import webdriver
+
+from mitm_proxy_helpers.proxy_logger import ProxyLogger
 
 
 class InvalidPathException(Exception):
@@ -17,7 +19,7 @@ class InvalidPlatformException(Exception):
     ''' Continues if an invalid platform is encountered '''
 
 
-class Proxy:
+class Proxy(ProxyLogger):
     # pylint: disable=too-few-public-methods,too-many-instance-attributes
     """
     The Proxy Handler can start and stop mitmproxy server locally or on a server
@@ -95,6 +97,7 @@ class Proxy:
         if not self.remote:
             har_dir = os.path.dirname(self.har_path)
             dir_util.mkpath(har_dir)
+        super(Proxy, self).__init__()
 
     def har(self):
         '''
@@ -117,7 +120,7 @@ class Proxy:
         retry_wait = 2
         error_str = "SSHException. Could not SSH to {0} error: {1}"
         for i in range(max_attempts):
-            print("Trying to connect to {0} (Attempt {1}/{2})".format(
+            self.log_output("Trying to connect to {0} (Attempt {1}/{2})".format(
                 self.host, i + 1, max_attempts))
             try:
                 ssh = paramiko.SSHClient()
@@ -125,21 +128,21 @@ class Proxy:
                 ssh.connect(
                     self.host, port=int(self.ssh_port), username=self.ssh_user,
                     password=self.ssh_password)
-                print("Connected to {}".format(self.host))
+                self.log_output("Connected to {}".format(self.host))
                 break
             except paramiko.ssh_exception.SSHException as err:
-                print(error_str.format(self.host, err))
+                self.log_output(error_str.format(self.host, err))
                 time.sleep(retry_wait)
             except paramiko.ssh_exception.NoValidConnectionsError as err:
-                print(error_str.format(self.host, err))
+                self.log_output(error_str.format(self.host, err))
                 time.sleep(retry_wait)
         else:
-            print("Could not connect to {0} after {1} attempts. "
-                  "Giving up".format(self.host, i + 1))
+            self.log_output("Could not connect to {0} after {1} attempts. "
+                            "Giving up".format(self.host, i + 1))
             return
 
         # Send the command (non-blocking)
-        print("Running command: {}".format(command))
+        self.log_output("Running command: {}".format(command))
         _, stdout, _ = ssh.exec_command(command)
 
         # Wait for the command to terminate
@@ -149,7 +152,7 @@ class Proxy:
                 rldc, _, _ = select.select([stdout.channel], [], [], 0.0)
                 if len(rldc) > 0:
                     # Print data from stdout
-                    print(stdout.channel.recv(1024))
+                    self.log_output(stdout.channel.recv(1024))
 
     def run_command(self, command, max_attempts=1):
         """ Executes a command locally or remotely """
@@ -172,34 +175,34 @@ class Proxy:
             script = 'har_logging'
 
         if script == 'har_logging':
-            print('Starting mitmdump proxy server with har logging')
+            self.log_output('Starting mitmdump proxy server with har logging')
             script_path = self.har_dump_path
         elif script == 'blacklist':
-            print('Starting mitmdump proxy server with blacklisting script')
+            self.log_output('Starting mitmdump proxy server with blacklisting script')
             script_path = self.blacklister_path
             status_code = '403'
         elif script == 'empty_response':
-            print('Starting mitmdump proxy server with empty response script')
+            self.log_output('Starting mitmdump proxy server with empty response script')
             script_path = self.empty_response_path
         elif script == 'har_and_blacklist':
-            print('Starting mitmdump proxy server with blacklisting and '
-                  'har logging script')
+            self.log_output('Starting mitmdump proxy server with blacklisting and '
+                            'har logging script')
             script_path = self.har_blacklist_path
             status_code = '403'
         elif script == 'json_resp_field_rewriter':
-            print('Starting mitmdump proxy server with json response'
-                  'field rewrite script enabled')
+            self.log_output('Starting mitmdump proxy server with json response'
+                            'field rewrite script enabled')
             script_path = self.json_resp_rewrite_path
         elif script == 'response_replace':
-            print('Starting mitmdump proxy server with response'
-                  'replace script enabled')
+            self.log_output('Starting mitmdump proxy server with response'
+                            'replace script enabled')
             script_path = self.response_replace_path
         elif script == 'request_throttle':
-            print('Starting mitmdump proxy server with request throttle '
-                  'enabled ')
+            self.log_output('Starting mitmdump proxy server with request throttle '
+                            'enabled ')
             script_path = self.request_throttle_path
         elif script == 'har_logging_no_replace':
-            print('Starting mitmdump proxy server with har logging, no replace')
+            self.log_output('Starting mitmdump proxy server with har logging, no replace')
             script_path = self.har_dump_no_replace_path
         else:
             raise Exception('Unknown proxy script provided.')
@@ -233,8 +236,9 @@ class Proxy:
                        config.get('run_identifier', ''),
                        ignore_hostname))
         self.run_command(command)
-        print("Waiting for {0}s after proxy start".format(wait))
+        self.log_output("Waiting for {0}s after proxy start".format(wait))
         time.sleep(wait)
+        return self
 
     @staticmethod
     def pids():
@@ -244,7 +248,7 @@ class Proxy:
 
     def stop_proxy(self):
         """ Stop the proxy server """
-        print('Stopping MITM proxy server')
+        self.log_output('Stopping MITM proxy server')
         command = ''
         if self.remote is True:
             command = "echo '{0}' | sudo killall {1}".format(
@@ -264,7 +268,7 @@ class Proxy:
         if self.remote is not True and os_type not in ['Linux']:
             return
 
-        print('Setting IP forwarding and iptables rules on {} host'.format(
+        self.log_output('Setting IP forwarding and iptables rules on {} host'.format(
             os_type))
 
         command = (
@@ -287,7 +291,7 @@ class Proxy:
         os_type = os.getenv('server_os_type', None)
         if self.remote is not True and os_type not in ['Linux']:
             return
-        print('Unsetting IP forwarding and iptables rules on {} host'.format(
+        self.log_output('Unsetting IP forwarding and iptables rules on {} host'.format(
             os_type))
 
         command = (
@@ -310,7 +314,7 @@ class Proxy:
         """ SFTP Get a HAR file from a remote server """
         # pylint: disable=no-member
         try:
-            print('Retrieving remote HAR file')
+            self.log_output('Retrieving remote HAR file')
             transport = paramiko.Transport((self.host, int(self.ssh_port)))
             transport.connect(
                 hostkey=None,
@@ -322,14 +326,14 @@ class Proxy:
                 self.har_log = har_file.read()
 
             # Disconnect from the host
-            print('Retrieved HAR file, closing SFTP connection')
+            self.log_output('Retrieved HAR file, closing SFTP connection')
             sftp.close()
             return self.har
         except paramiko.ssh_exception.SSHException as err:
-            print("Could not SFTP to {0} error: {1}".format(self.host, err))
+            self.log_output("Could not SFTP to {0} error: {1}".format(self.host, err))
             return None
         except IOError as err:
-            print("IOError: {}".format(err))
+            self.log_output("IOError: {}".format(err))
             return None
 
     def fetch_har(self):
@@ -340,7 +344,7 @@ class Proxy:
         if self.remote is True:
             har = self._fetch_remote_har()
         else:
-            print('Retrieving Local HAR file')
+            self.log_output('Retrieving Local HAR file')
             for _ in range(retries):
                 if os.path.exists(self.har_path):
                     break
@@ -353,6 +357,21 @@ class Proxy:
         msg = 'Deleting HAR file'
         if self.remote is True:
             msg = 'Deleting remote HAR file'
-        print(msg)
+        self.log_output(msg)
         command = "rm -rf {0}".format(self.har_path)
         self.run_command(command, 10)
+
+    def proxy(self):
+        ''' Returns a browsermob styled proxy string '''
+        url = "http://" + self.host
+        url_parts = url.split(":")
+        return url_parts[1][2:] + ":" + str(self.proxy_port)
+
+    def selenium_proxy(self):
+        """
+        Returns a Selenium WebDriver Proxy class with details of the HTTP Proxy
+        """
+        return webdriver.Proxy({
+            "httpProxy": self.proxy(),
+            "sslProxy": self.proxy(),
+        })
