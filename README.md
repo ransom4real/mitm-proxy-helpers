@@ -45,7 +45,7 @@ Helpers to enable MITM proxy functionality for direct and transparent proxying o
    proxy_client.har()
    ```
 
-   Other scripts you can run include `blacklist`, `empty_response`, `har_and_blacklist`, `json_resp_field_rewriter`, `response_replace`, `request_throttle` and `har_logging_no_replace`. Just ensure you set the MITM related variables as explained below
+   Other scripts you can run include `blacklist`, `empty_response`, `har_and_blacklist`, `json_resp_field_rewriter`, `response_replace`, `request_latency` and `har_logging_no_replace`. Just ensure you set the MITM related variables as explained below
 
 During execution some environment variables will need to be set defaults are meant to be overriden. See list below
 
@@ -66,7 +66,7 @@ During execution some environment variables will need to be set defaults are mea
 * mitm_verbose: Set to true if you want to print the mitm_proxy library outputs to the terminal. Defaults to false
 
 ## MITM Proxy Scripts
-* This defaults to `mitm_proxy_helpers/server_scripts/${script}.py`. If you have custom `${script}.py` scripts please set the path here. If path is remote, please set the path to the remote script location. Possible scripts include `har_dump`, `blacklister`, `empty_response`, `har_dump_and_blacklister`, `json_response_field_rewriter`, `response_replace` and `request_throttle`.
+* This defaults to `mitm_proxy_helpers/server_scripts/${script}.py`. If you have custom `${script}.py` scripts please set the path here. If path is remote, please set the path to the remote script location. Possible scripts include `har_dump`, `blacklister`, `empty_response`, `har_dump_and_blacklister`, `json_response_field_rewriter`, `response_replace` and `request_latency`.
 
 
 # How do i contribute to it

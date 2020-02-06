@@ -1,3 +1,4 @@
+""" Build a Mitmproxy (mitmdump) command line string """
 from __future__ import print_function
 import socket
 import sys
@@ -7,7 +8,7 @@ from mitm_proxy_helpers.proxy_logger import ProxyLogger
 
 
 class InvalidPathException(Exception):
-    pass
+    """ Exception representing invalid path """
 
 
 class MitmProxy(ProxyLogger):
@@ -22,7 +23,7 @@ class MitmProxy(ProxyLogger):
 
     # pylint: disable=useless-else-on-loop
     def build_ignore_hosts(self, hostname=None):
-        """ Build a mitmproxyignore_hosts command string.
+        """ Build a mitmproxy ignore_hosts command string.
         Take a hostname and convert it to a list of IP addresses. Use this to
         build the mitmproxy ignore command line argument string """
 
@@ -67,9 +68,8 @@ class MitmProxy(ProxyLogger):
                "--set field_name='{field_name}' "
                "--set field_value='{field_value}' "
                "--set partial_url='{partial_url}' "
-               "--set partial_url_2='{partial_url_2}' "
                "--set fixture_path='{fixture_path}' "
-               "--set fixture_path_2='{fixture_path_2}' "
+               "--set latency={latency} "
                "--set run_identifier='{run_identifier}' "
                "{ignore_str}").format(
                    ulimit=self.config.get('ulimit', ''),
@@ -81,9 +81,8 @@ class MitmProxy(ProxyLogger):
                    field_name=self.config.get('field_name', ''),
                    field_value=self.config.get('field_value', ''),
                    partial_url=self.config.get('partial_url', ''),
-                   partial_url_2=self.config.get('partial_url_2', ''),
                    fixture_path=self.config.get('fixture_path', ''),
-                   fixture_path_2=self.config.get('fixture_path_2', ''),
+                   latency=self.config.get('latency', ''),
                    run_identifier=self.config.get('run_identifier', ''),
                    ignore_str=ignore_str)
         if self.config.get('script_path'):
@@ -100,19 +99,19 @@ class MitmProxy(ProxyLogger):
 
 if __name__ == '__main__':
     try:
-        options, remainder = getopt.getopt(
+        OPTIONS, _ = getopt.getopt(
             sys.argv[1:],
             '',
             ['ulimit=', 'python3_path=', 'har_dump_path=', 'har_path=',
              'proxy_port=', 'script_path=', 'mode=',
              'ignore_hostname=',
              'status_code=', 'field_name=', 'field_value=',
-             'partial_url=', 'partial_url_2=',
-             'fixture_path=', 'fixture_path_2=', 'run_identifier='])
+             'partial_url=', 'fixture_path=', 'latency=',
+             'run_identifier='])
     except getopt.GetoptError as err:
         print('proxy_launcher: {}'.format(err))
         sys.exit(1)
-    conf = {}
-    for opt, arg in options:
-        conf[opt.strip('--')] = arg
-    MitmProxy(conf).run_command()
+    CONF = {}
+    for opt, arg in OPTIONS:
+        CONF[opt.strip('--')] = arg
+    MitmProxy(CONF).run_command()

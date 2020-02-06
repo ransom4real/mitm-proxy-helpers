@@ -69,8 +69,8 @@ class Proxy(ProxyLogger):
         self.response_replace_path = os.getenv('response_replace_script_path',
                                                "{0}/response_replace.py".format(
                                                    self.path_to_scripts))
-        self.request_throttle_path = os.getenv('request_throttle_script_path',
-                                               "{0}/request_throttle.py".format(
+        self.request_latency_path = os.getenv('request_latency_script_path',
+                                               "{0}/request_latency.py".format(
                                                    self.path_to_scripts))
         self.har_dump_no_replace_path = os.getenv('har_dump_no_replace_path',
                                                   "{0}/har_dump_no_replace.py".format(
@@ -82,7 +82,7 @@ class Proxy(ProxyLogger):
                     self.empty_response_path,
                     self.json_resp_rewrite_path,
                     self.response_replace_path,
-                    self.request_throttle_path,
+                    self.request_latency_path,
                     self.har_dump_no_replace_path]) and self.remote:
             raise Exception('Not all remote MITM proxy env variables were provided.')
         if not all([self.host, self.har_path, self.python3_path,
@@ -90,7 +90,7 @@ class Proxy(ProxyLogger):
                     self.empty_response_path,
                     self.json_resp_rewrite_path,
                     self.response_replace_path,
-                    self.request_throttle_path,
+                    self.request_latency_path,
                     self.har_dump_no_replace_path]):
             raise Exception('Not all local MITM proxy env variables were provided.')
 
@@ -200,10 +200,10 @@ class Proxy(ProxyLogger):
             self.log_output('Starting mitmdump proxy server with response'
                             'replace script enabled')
             script_path = self.response_replace_path
-        elif script == 'request_throttle':
+        elif script == 'request_latency':
             self.log_output('Starting mitmdump proxy server with request throttle '
                             'enabled ')
-            script_path = self.request_throttle_path
+            script_path = self.request_latency_path
         elif script == 'har_logging_no_replace':
             self.log_output('Starting mitmdump proxy server with har logging, no replace')
             script_path = self.har_dump_no_replace_path
@@ -211,8 +211,7 @@ class Proxy(ProxyLogger):
             raise Exception('Unknown proxy script provided.')
 
         fixture_path = self.fixtures_dir + config.get('fixture_file', '')
-        fixture_path_two = self.fixtures_dir + config.get('fixture_file_two', '')
-        command = ("python {0}/proxy_launcher.py "
+        command = ("python3 {0}/proxy_launcher.py "
                    "--ulimit={1} --python3_path={2} --har_dump_path={3} "
                    "--har_path={4} --proxy_port={5} --script_path={6} "
                    .format(
@@ -223,19 +222,19 @@ class Proxy(ProxyLogger):
         command = ("{0} "
                    "--status_code={1} "
                    "--field_name={2} --field_value='{3}' "
-                   "--partial_url='{4}' --partial_url_2='{5}' "
-                   "--fixture_path='{6}' --fixture_path_2='{7}' "
-                   "--run_identifier='{8}' "
-                   "--ignore_hostname={9} &"
+                   "--partial_url='{4}' "
+                   "--fixture_path='{5}' "
+                   "--latency={6} "
+                   "--run_identifier='{7}' "
+                   "--ignore_hostname={8} &"
                    .format(
                        command,
                        config.get('status_code', status_code),
                        config.get('field_name', ''),
                        config.get('field_value', ''),
                        config.get('partial_url', ''),
-                       config.get('partial_url_2', ''),
                        fixture_path,
-                       fixture_path_two,
+                       config.get('latency', ''),
                        config.get('run_identifier', ''),
                        ignore_hostname))
         self.run_command(command)
@@ -337,7 +336,7 @@ class Proxy(ProxyLogger):
             # Disconnect from the host
             self.log_output('Retrieved HAR file, closing SFTP connection')
             sftp.close()
-            return self.har
+            return self.har_log
         except paramiko.ssh_exception.SSHException as err:
             self.log_output("Could not SFTP to {0} error: {1}".format(self.host, err))
             return None

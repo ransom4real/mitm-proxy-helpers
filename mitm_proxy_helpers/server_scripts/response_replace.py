@@ -29,27 +29,18 @@ def load(loader):
         "absolute path to fixture file 1"
     )
     loader.add_option(
-        "partial_url_2", str, "",
-        "partial url 2 to match upon"
-    )
-    loader.add_option(
-        "fixture_path_2", str, "",
-        "absolute path to fixture file 2"
-    )
-    loader.add_option(
         "check_json", bool, True,
         "specifies if we want to check that the http response is JSON"
     )
 
 
 def response(flow):
-    DATA = {
+    data = {
         ctx.options.partial_url : ctx.options.fixture_path,
-        ctx.options.partial_url_2 : ctx.options.fixture_path_2
     }
 
-    if any(url in flow.request.pretty_url for url in DATA):
-        for (partial_url, fixture_path) in DATA.items():
+    if any(url in flow.request.pretty_url for url in data):
+        for (partial_url, fixture_path) in data.items():
             if not partial_url or not fixture_path:
                 continue
             if partial_url in flow.request.pretty_url:
